@@ -1,0 +1,29 @@
+# Название в префиксе сообщений плагина
+prefix: "Settings"
+
+# Права, дающие доступ к смене роста (группы sponsor и sponsor+ в LuckPerms)
+height-permissions:
+  - group.sponsor
+  - group.sponsor+
+  - settings.height
+
+# Часовой пояс для смены дня/недели заданий
+timezone: "Europe/Moscow"
+
+join:
+  hide-join-message: true    # убрать «Игрок зашёл в игру»
+  hide-quit-message: true    # убрать «Игрок вышел из игры»
+  welcome-title: true        # красивый заголовок при входе
+  quest-reminder: true       # напоминание о заданиях при входе
+
+quests:
+  daily-tiers: [1, 2, 3]       # сколько и какой сложности ежедневных заданий
+  weekly-tiers: [1, 2, 3, 3]   # то же для еженедельных
+  daily-bonus: 60              # бонус за все ежедневные
+  weekly-bonus: 300            # бонус за все еженедельные
+  autosave-minutes: 5
+  streak-bonuses:              # бонус за серию дней подряд
+    3: 30
+    7: 100
+    14: 250
+    30: 1000
