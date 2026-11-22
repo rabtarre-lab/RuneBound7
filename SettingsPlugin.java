@@ -1,5 +1,7 @@
 package me.settings;
 
+import io.papermc.paper.chat.ChatRenderer;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -52,6 +54,7 @@ public class SettingsPlugin extends JavaPlugin implements Listener, CommandExecu
 
     private QuestManager quests;
     private QuestMenus menus;
+    private RulesManager rules;
 
     // ================= запуск =================
     @Override
@@ -71,8 +74,17 @@ public class SettingsPlugin extends JavaPlugin implements Listener, CommandExecu
         menus = new QuestMenus(this, quests);
         Bukkit.getPluginManager().registerEvents(new QuestListener(quests), this);
         Bukkit.getPluginManager().registerEvents(menus, this);
+        Bukkit.getPluginManager().registerEvents(new AccessListener(quests), this);
         for (String cmd : new String[]{"quests", "shop", "runes"}) {
             if (getCommand(cmd) != null) getCommand(cmd).setExecutor(menus);
+        }
+
+        // правила: книга при входе и /rules, доступ к чужому: /access
+        rules = new RulesManager(this, quests);
+        rules.load();
+        Bukkit.getPluginManager().registerEvents(rules, this);
+        for (String cmd : new String[]{"rules", "access"}) {
+            if (getCommand(cmd) != null) getCommand(cmd).setExecutor(rules);
         }
         for (Player p : Bukkit.getOnlinePlayers()) quests.onJoin(p);
 
@@ -267,9 +279,27 @@ public class SettingsPlugin extends JavaPlugin implements Listener, CommandExecu
     }
 
     // ================= ник =================
-    private void applyNick(Player p) {
-        if (hiddenNick.contains(p.getUniqueId())) hiddenTeam.addEntry(p.getName());
-        else hiddenTeam.removeEntry(p.getName());
+    /** Скрытый ник или цвет ника из магазина (цвет виден над головой и в табе). */
+    public void applyNick(Player p) {
+        UUID id = p.getUniqueId();
+        String name = p.getName();
+        Scoreboard sb = Bukkit.getScoreboardManager().getMainScoreboard();
+        hiddenTeam.removeEntry(name);
+        for (Team t : sb.getTeams()) if (t.getName().startsWith("stc_")) t.removeEntry(name);
+
+        if (hiddenNick.contains(id)) {
+            hiddenTeam.addEntry(name);
+            return;
+        }
+        String c = quests.data(id).nickColor;
+        if (c == null || c.isEmpty()) return;
+        String key = c.toLowerCase();
+        NamedTextColor col = NamedTextColor.NAMES.value(key);
+        if (col == null) return;
+        Team t = sb.getTeam("stc_" + key);
+        if (t == null) t = sb.registerNewTeam("stc_" + key);
+        t.color(col);
+        t.addEntry(name);
     }
 
     // ================= рост =================
@@ -328,6 +358,8 @@ public class SettingsPlugin extends JavaPlugin implements Listener, CommandExecu
         }
 
         quests.onJoin(p);
+        applyNick(p);
+        rules.startForced(p);
         Bukkit.getScheduler().runTaskLater(this, () -> { if (p.isOnline()) quests.welcome(p); }, 40L);
     }
 
@@ -336,6 +368,18 @@ public class SettingsPlugin extends JavaPlugin implements Listener, CommandExecu
         if (getConfig().getBoolean("join.hide-quit-message", true)) e.quitMessage(null);
         awaitingHeight.remove(e.getPlayer().getUniqueId());
         quests.onQuit(e.getPlayer());
+        rules.onQuit(e.getPlayer());
+    }
+
+    // ================= титул в чате (косметика) =================
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onChatTitle(AsyncChatEvent e) {
+        QData d = quests.data(e.getPlayer().getUniqueId());
+        if (d.title == null || d.title.isEmpty()) return;
+        Component prefix = Gui.LEGACY.deserialize(d.title);
+        e.renderer((source, name, message, viewer) -> Component.empty()
+                .append(prefix).append(Component.space()).append(name)
+                .append(Component.text(" » ", NamedTextColor.GRAY)).append(message));
     }
 
     // ================= посадка на игрока =================

@@ -2,6 +2,7 @@ package me.settings;
 
 import io.papermc.paper.event.player.PlayerTradeEvent;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.entity.Item;
@@ -10,10 +11,13 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTameEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.FurnaceExtractEvent;
@@ -25,25 +29,19 @@ import org.bukkit.event.player.PlayerLevelChangeEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.UUID;
 
-/** Превращает игровые события в прогресс заданий. */
+/** Превращает игровые события в прогресс заданий и запоминает владельцев блоков. */
 public class QuestListener implements Listener {
     private final QuestManager qm;
-    // блоки, поставленные игроками: за них не засчитываем «сломать» (защита от накрутки)
-    private final Set<String> placed = new HashSet<>();
 
     public QuestListener(QuestManager qm) { this.qm = qm; }
 
-    private String key(Block b) {
-        return b.getWorld().getName() + ":" + b.getX() + ":" + b.getY() + ":" + b.getZ();
-    }
-
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent e) {
-        if (placed.size() > 40000) placed.clear();
-        placed.add(key(e.getBlockPlaced()));
+        // запоминаем владельца: за такие блоки не засчитываем «сломать»,
+        // а новички не смогут их ломать и открывать
+        qm.owners.set(e.getBlockPlaced(), e.getPlayer().getUniqueId());
         qm.add(e.getPlayer(), Quest.Type.PLACE, e.getBlockPlaced().getType().name(), 1);
     }
 
@@ -52,18 +50,41 @@ public class QuestListener implements Listener {
         Player p = e.getPlayer();
         Block b = e.getBlock();
         String mat = b.getType().name();
+        UUID owner = qm.owners.owner(b);
+        qm.owners.remove(b);
+
         if (b.getBlockData() instanceof Ageable ag && ag.getAge() >= ag.getMaximumAge())
             qm.add(p, Quest.Type.HARVEST, mat, 1);
-        if (placed.remove(key(b))) return;
+        if (owner != null) return; // поставленные игроками блоки в задания не идут
+
         qm.add(p, Quest.Type.BREAK, mat, 1);
+        qm.access.onMined(p, mat);
         if (b.getType() == Material.MELON || b.getType() == Material.PUMPKIN)
             qm.add(p, Quest.Type.HARVEST, mat, 1);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onExplode(EntityExplodeEvent e) {
+        for (Block b : e.blockList()) qm.owners.remove(b);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockExplode(BlockExplodeEvent e) {
+        for (Block b : e.blockList()) qm.owners.remove(b);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBurn(BlockBurnEvent e) {
+        qm.owners.remove(e.getBlock());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onKill(EntityDeathEvent e) {
         Player k = e.getEntity().getKiller();
-        if (k != null) qm.add(k, Quest.Type.KILL, e.getEntityType().name(), 1);
+        if (k == null) return;
+        qm.add(k, Quest.Type.KILL, e.getEntityType().name(), 1);
+        QData d = qm.data(k.getUniqueId());
+        if (!d.killFx.isEmpty()) qm.playKillFx(e.getEntity().getLocation(), d.killFx);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -125,7 +146,10 @@ public class QuestListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorld(PlayerChangedWorldEvent e) {
-        qm.add(e.getPlayer(), Quest.Type.DIMENSION, e.getPlayer().getWorld().getEnvironment().name(), 1);
+        Player p = e.getPlayer();
+        World.Environment env = p.getWorld().getEnvironment();
+        qm.add(p, Quest.Type.DIMENSION, env.name(), 1);
+        if (env == World.Environment.NETHER) qm.access.onNether(p);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

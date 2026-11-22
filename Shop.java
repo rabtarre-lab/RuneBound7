@@ -16,8 +16,11 @@ public final class Shop {
 
     public static List<String> strList(Object o) {
         List<String> l = new ArrayList<>();
-        if (o instanceof List<?> src) for (Object x : src) l.add(String.valueOf(x));
-        else if (o != null) l.add(String.valueOf(o));
+        if (o instanceof List<?> src) {
+            for (Object x : src) l.add(String.valueOf(x));
+        } else if (o != null) {
+            l.add(String.valueOf(o));
+        }
         return l;
     }
 
@@ -36,7 +39,7 @@ public final class Shop {
     }
 
     public static final class Item {
-        public final String id, name, effect, trail;
+        public final String id, name, effect, trail, nick, title, killfx;
         public final Material icon;
         public final int price;
         public final List<String> desc;
@@ -54,7 +57,11 @@ public final class Shop {
             this.commands = strList(m.get("commands"));
             this.effect = Quest.str(m, "effect", "");
             this.trail = Quest.str(m, "trail", "");
-            this.once = !trail.isEmpty() || Boolean.TRUE.equals(m.get("once"));
+            this.nick = Quest.str(m, "nick", "");
+            this.title = Quest.str(m, "title", "");
+            this.killfx = Quest.str(m, "killfx", "");
+            this.once = !trail.isEmpty() || !nick.isEmpty() || !title.isEmpty() || !killfx.isEmpty()
+                    || Boolean.TRUE.equals(m.get("once"));
             String g = Quest.str(m, "give", "");
             if (!g.isEmpty()) {
                 String[] a = g.split(":");
@@ -63,6 +70,25 @@ public final class Shop {
                     try { giveAmt = Integer.parseInt(a[1].trim()); } catch (NumberFormatException ignored) {}
                 }
             }
+        }
+
+        /** Слот косметики: trail / nick / title / killfx (или пусто, если это не косметика). */
+        public String slot() {
+            if (!trail.isEmpty()) return "trail";
+            if (!nick.isEmpty()) return "nick";
+            if (!title.isEmpty()) return "title";
+            if (!killfx.isEmpty()) return "killfx";
+            return "";
+        }
+
+        public String value() {
+            return switch (slot()) {
+                case "trail" -> trail;
+                case "nick" -> nick;
+                case "title" -> title;
+                case "killfx" -> killfx;
+                default -> "";
+            };
         }
     }
 }

@@ -6,7 +6,7 @@
 
     <groupId>me.settings</groupId>
     <artifactId>Settings</artifactId>
-    <version>2.0</version>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -33,15 +33,10 @@
 
     <build>
         <finalName>Settings</finalName>
-        <sourceDirectory>${project.basedir}</sourceDirectory>
         <resources>
             <resource>
-                <directory>${project.basedir}</directory>
-                <includes>
-                    <include>plugin.yml</include>
-                    <include>config.yml</include>
-                    <include>quests.yml</include>
-                </includes>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
             </resource>
         </resources>
     </build>

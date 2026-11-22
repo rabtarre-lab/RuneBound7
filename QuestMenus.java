@@ -397,13 +397,15 @@ public class QuestMenus implements Listener, CommandExecutor {
 
     private ItemStack shopItem(QData d, Shop.Item it) {
         List<String> l = new ArrayList<>(it.desc);
+        if (!it.title.isEmpty()) l.add("§7Превью в чате: " + it.title + " §f" + "Игрок");
         l.add("");
         boolean owned = it.once && d.owned.contains(it.id);
         boolean glow = false;
-        if (owned && !it.trail.isEmpty()) {
-            boolean on = d.trail.equalsIgnoreCase(it.trail);
+        String slot = it.slot();
+        if (owned && !slot.isEmpty()) {
+            boolean on = d.equipped(slot).equalsIgnoreCase(it.value());
             glow = on;
-            l.add(on ? "§a● Экипировано" : "§a✔ Куплено");
+            l.add(on ? "§a● Надето" : "§a✔ Куплено");
             l.add(on ? "§8» §eНажми, чтобы снять" : "§8» §eНажми, чтобы надеть");
         } else if (owned) {
             l.add("§a✔ Уже куплено");

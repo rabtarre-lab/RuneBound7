@@ -67,8 +67,13 @@ public class QuestManager {
     private boolean dirty;
     private File dataFile;
 
+    public final Owners owners;
+    public final Access access;
+
     public QuestManager(SettingsPlugin plugin) {
         this.plugin = plugin;
+        this.owners = new Owners(plugin);
+        this.access = new Access(plugin, this);
     }
 
     // ===================== загрузка =====================
@@ -124,6 +129,7 @@ public class QuestManager {
         }
 
         loadData();
+        owners.load();
         plugin.getLogger().info("Заданий: " + byId.size() + ", цепочек: " + chains.size() + ", категорий магазина: " + shop.size());
     }
 
@@ -138,7 +144,11 @@ public class QuestManager {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             refreshDays();
             for (Player p : Bukkit.getOnlinePlayers()) {
-                ensure(p.getUniqueId(), data(p.getUniqueId()));
+                QData d = data(p.getUniqueId());
+                ensure(p.getUniqueId(), d);
+                d.playMinutes++;
+                dirty = true;
+                access.check(p, d);
                 add(p, Quest.Type.PLAYTIME, "*", 1);
             }
         }, 1200L, 1200L);
@@ -177,7 +187,7 @@ public class QuestManager {
 
         // автосохранение
         long mins = Math.max(1, plugin.getConfig().getInt("quests.autosave-minutes", 5));
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> { if (dirty) save(); }, mins * 1200L, mins * 1200L);
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> { if (dirty) save(); owners.saveIfDirty(); }, mins * 1200L, mins * 1200L);
     }
 
     private long walkCm(Player p) {
@@ -428,14 +438,16 @@ public class QuestManager {
     public void buy(Player p, Shop.Item it) {
         QData d = data(p.getUniqueId());
         if (it.once && d.owned.contains(it.id)) {
-            if (!it.trail.isEmpty()) {
-                if (d.trail.equalsIgnoreCase(it.trail)) {
-                    d.trail = "";
-                    Gui.msg(p, "§7Эффект снят.");
+            String slot = it.slot();
+            if (!slot.isEmpty()) {
+                if (d.equipped(slot).equalsIgnoreCase(it.value())) {
+                    d.equip(slot, "");
+                    Gui.msg(p, "§7Снято: §f" + it.name);
                 } else {
-                    d.trail = it.trail;
-                    Gui.msg(p, "§aЭффект надет: §f" + it.name);
+                    d.equip(slot, it.value());
+                    Gui.msg(p, "§aНадето: §f" + it.name);
                 }
+                plugin.applyNick(p);
                 Gui.sound(p, Sound.UI_BUTTON_CLICK, 1.2f);
                 dirty = true;
             } else {
@@ -455,10 +467,27 @@ public class QuestManager {
         for (String c : it.commands) Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c.replace("{player}", p.getName()));
         if (it.once) {
             d.owned.add(it.id);
-            if (!it.trail.isEmpty()) d.trail = it.trail;
+            if (!it.slot().isEmpty()) {
+                d.equip(it.slot(), it.value());
+                plugin.applyNick(p);
+            }
         }
         Gui.sound(p, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.2f);
         Gui.msg(p, "§aКуплено: §f" + it.name + " §7(−" + it.price + " рун)");
+    }
+
+    /** Косметика «эффект убийства». */
+    public void playKillFx(Location loc, String fx) {
+        if (loc.getWorld() == null) return;
+        if (fx.equalsIgnoreCase("LIGHTNING")) {
+            loc.getWorld().strikeLightningEffect(loc);
+            return;
+        }
+        try {
+            Particle part = Particle.valueOf(fx.toUpperCase());
+            loc.getWorld().spawnParticle(part, loc.clone().add(0, 1, 0), 40, 0.4, 0.6, 0.4, 0.05);
+        } catch (IllegalArgumentException ignored) {
+        }
     }
 
     private void applyEffect(Player p, String spec) {
@@ -548,6 +577,17 @@ public class QuestManager {
             d.weeklyKey = s.getString("weekly-key", "");
             d.lastStreakDay = s.getString("last-streak-day", "");
             d.trail = s.getString("trail", "");
+            d.nickColor = s.getString("nick-color", "");
+            d.title = s.getString("title", "");
+            d.killFx = s.getString("kill-fx", "");
+            d.rulesAccepted = s.getBoolean("rules-accepted");
+            d.unlockedBreak = s.getBoolean("unlocked-break");
+            d.unlockedOpen = s.getBoolean("unlocked-open");
+            d.accNether = s.getBoolean("acc-nether");
+            d.accStone = s.getInt("acc-stone");
+            d.accWood = s.getInt("acc-wood");
+            d.accIron = s.getInt("acc-iron");
+            d.playMinutes = s.getLong("play-minutes");
             d.daily = new ArrayList<>(s.getStringList("daily"));
             d.weekly = new ArrayList<>(s.getStringList("weekly"));
             d.claimed.addAll(s.getStringList("claimed"));
@@ -576,6 +616,17 @@ public class QuestManager {
             y.set(b + ".weekly-key", d.weeklyKey);
             y.set(b + ".last-streak-day", d.lastStreakDay);
             y.set(b + ".trail", d.trail);
+            y.set(b + ".nick-color", d.nickColor);
+            y.set(b + ".title", d.title);
+            y.set(b + ".kill-fx", d.killFx);
+            y.set(b + ".rules-accepted", d.rulesAccepted);
+            y.set(b + ".unlocked-break", d.unlockedBreak);
+            y.set(b + ".unlocked-open", d.unlockedOpen);
+            y.set(b + ".acc-nether", d.accNether);
+            y.set(b + ".acc-stone", d.accStone);
+            y.set(b + ".acc-wood", d.accWood);
+            y.set(b + ".acc-iron", d.accIron);
+            y.set(b + ".play-minutes", d.playMinutes);
             y.set(b + ".daily", d.daily);
             y.set(b + ".weekly", d.weekly);
             y.set(b + ".claimed", new ArrayList<>(d.claimed));
@@ -587,6 +638,7 @@ public class QuestManager {
             plugin.getDataFolder().mkdirs();
             y.save(dataFile);
             dirty = false;
+            owners.saveIfDirty();
         } catch (IOException e) {
             plugin.getLogger().warning("Не удалось сохранить quest-data.yml: " + e.getMessage());
         }

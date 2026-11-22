@@ -1,6 +1,6 @@
 name: Settings
 main: me.settings.SettingsPlugin
-version: 2.0
+version: 2.1
 api-version: '1.21'
 commands:
   settings:
@@ -13,7 +13,16 @@ commands:
     aliases: [magazin]
   runes:
     description: Баланс рун
+  rules:
+    description: Правила сервера
+    aliases: [pravila]
+  access:
+    description: Прогресс доступа к чужому
+    aliases: [dostup, unlock]
 permissions:
   settings.admin:
     description: Управление рунами и заданиями игроков
+    default: op
+  settings.bypass:
+    description: Обход ограничения на чужие блоки
     default: op

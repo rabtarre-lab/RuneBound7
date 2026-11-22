@@ -61,6 +61,16 @@ weekly:
 
 # --------------------------------- ЦЕПОЧКИ ----------------------------------
 chains:
+  - id: newbie
+    name: "Путь новичка"
+    icon: GRASS_BLOCK
+    desc: "Те же задания, что открывают доступ к чужому, но с наградой."
+    steps:
+      - {id: ch_n1, name: "Первый камень", type: BREAK, targets: ["STONE", "COBBLESTONE", "DEEPSLATE", "ANDESITE", "DIORITE", "GRANITE"], amount: 32, reward: 25, icon: COBBLESTONE, desc: "Добудь 32 камня"}
+      - {id: ch_n2, name: "Свой дом из дерева", type: BREAK, targets: ["*_LOG"], amount: 16, reward: 25, icon: OAK_LOG, desc: "Добудь 16 дерева"}
+      - {id: ch_n3, name: "Первое железо", type: BREAK, targets: ["IRON_ORE", "DEEPSLATE_IRON_ORE"], amount: 8, reward: 40, icon: IRON_INGOT, desc: "Добудь 8 железа"}
+      - {id: ch_n4, name: "Дорога в ад", type: DIMENSION, targets: ["NETHER"], amount: 1, reward: 60, icon: NETHERRACK, desc: "Посети Незер"}
+      - {id: ch_n5, name: "Обжился", type: PLAYTIME, targets: ["*"], amount: 30, reward: 80, item: "COOKED_BEEF:16", icon: CLOCK, desc: "Отыграй 30 минут"}
   - id: miner
     name: "Путь шахтёра"
     icon: IRON_PICKAXE
@@ -212,3 +222,49 @@ shop:
       - {id: trail_cherry, name: "След: Сакура", icon: CHERRY_LEAVES, price: 600, trail: CHERRY_LEAVES}
       - {id: trail_snow, name: "След: Снежинки", icon: SNOWBALL, price: 350, trail: SNOWFLAKE}
       - {id: trail_witch, name: "След: Магия", icon: AMETHYST_SHARD, price: 400, trail: WITCH}
+      - {id: trail_glow, name: "След: Свечение", icon: GLOW_INK_SAC, price: 450, trail: GLOW}
+      - {id: trail_sculk, name: "След: Души скалка", icon: SOUL_SAND, price: 500, trail: SCULK_SOUL}
+      - {id: trail_spark, name: "След: Молнии", icon: LIGHTNING_ROD, price: 550, trail: ELECTRIC_SPARK}
+      - {id: trail_crit, name: "След: Искры удара", icon: IRON_SWORD, price: 350, trail: CRIT}
+      - {id: trail_ink, name: "След: Чернила", icon: INK_SAC, price: 350, trail: SQUID_INK}
+      - {id: trail_spore, name: "След: Споры", icon: SPORE_BLOSSOM, price: 500, trail: SPORE_BLOSSOM_AIR}
+  - id: nick
+    name: "Цвет ника"
+    icon: NAME_TAG
+    desc: ["§7Цвет ника над головой и в табе.", "§7Не работает, если ник скрыт."]
+    items:
+      - {id: nick_gold, name: "Ник: Золотой", icon: GOLD_INGOT, price: 250, nick: GOLD}
+      - {id: nick_aqua, name: "Ник: Бирюзовый", icon: DIAMOND, price: 250, nick: AQUA}
+      - {id: nick_green, name: "Ник: Зелёный", icon: LIME_DYE, price: 250, nick: GREEN}
+      - {id: nick_red, name: "Ник: Красный", icon: REDSTONE, price: 250, nick: RED}
+      - {id: nick_pink, name: "Ник: Розовый", icon: PINK_DYE, price: 250, nick: LIGHT_PURPLE}
+      - {id: nick_yellow, name: "Ник: Жёлтый", icon: YELLOW_DYE, price: 250, nick: YELLOW}
+      - {id: nick_blue, name: "Ник: Синий", icon: LAPIS_LAZULI, price: 250, nick: BLUE}
+      - {id: nick_purple, name: "Ник: Фиолетовый", icon: PURPLE_DYE, price: 250, nick: DARK_PURPLE}
+  - id: titles
+    name: "Титулы в чате"
+    icon: WRITABLE_BOOK
+    desc: ["§7Красивая приставка перед ником", "§7в чате."]
+    items:
+      - {id: title_hero, name: "Титул: Герой", icon: GOLDEN_HELMET, price: 600, title: "§e★ Герой ★"}
+      - {id: title_miner, name: "Титул: Шахтёр", icon: DIAMOND_PICKAXE, price: 500, title: "§3♦ Шахтёр ♦"}
+      - {id: title_farmer, name: "Титул: Фермер", icon: GOLDEN_HOE, price: 500, title: "§a✿ Фермер ✿"}
+      - {id: title_hunter, name: "Титул: Охотник", icon: BOW, price: 600, title: "§c☠ Охотник ☠"}
+      - {id: title_mage, name: "Титул: Маг", icon: ENCHANTING_TABLE, price: 700, title: "§5✦ Маг ✦"}
+      - {id: title_warrior, name: "Титул: Воин", icon: IRON_SWORD, price: 700, title: "§9⚔ Воин ⚔"}
+      - {id: title_cute, name: "Титул: Милаха", icon: PINK_TULIP, price: 500, title: "§d❤ Милаха ❤"}
+      - {id: title_wander, name: "Титул: Странник", icon: COMPASS, price: 500, title: "§f☽ Странник ☽"}
+      - {id: title_sun, name: "Титул: Солнечный", icon: SUNFLOWER, price: 600, title: "§6☀ Солнечный ☀"}
+      - {id: title_legend, name: "Титул: Легенда", icon: NETHER_STAR, price: 1500, title: "§6§l✦ ЛЕГЕНДА ✦"}
+  - id: killfx
+    name: "Эффекты убийства"
+    icon: TOTEM_OF_UNDYING
+    desc: ["§7Красивый эффект, когда ты", "§7убиваешь моба или игрока."]
+    items:
+      - {id: kill_lightning, name: "Убийство: Молния", icon: LIGHTNING_ROD, price: 600, killfx: LIGHTNING}
+      - {id: kill_heart, name: "Убийство: Сердца", icon: PINK_DYE, price: 400, killfx: HEART}
+      - {id: kill_flame, name: "Убийство: Пламя", icon: BLAZE_POWDER, price: 400, killfx: FLAME}
+      - {id: kill_soul, name: "Убийство: Души", icon: SOUL_LANTERN, price: 450, killfx: SOUL_FIRE_FLAME}
+      - {id: kill_totem, name: "Убийство: Тотем", icon: TOTEM_OF_UNDYING, price: 700, killfx: TOTEM_OF_UNDYING}
+      - {id: kill_rod, name: "Убийство: Искры", icon: END_ROD, price: 400, killfx: END_ROD}
+      - {id: kill_crit, name: "Убийство: Крит", icon: IRON_SWORD, price: 350, killfx: CRIT}
